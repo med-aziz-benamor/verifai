@@ -4,7 +4,10 @@
 //              navigation events to check URLs, and relays messages from the
 //              content script to the Verifai API.
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = (() => {
+  // Switch to production URL when not on localhost
+  return 'http://localhost:8000';
+})();
 
 // ---------------------------------------------------------------------------
 // Install — set up context menus

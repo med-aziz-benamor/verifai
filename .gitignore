@@ -50,6 +50,9 @@ htmlcov/
 .Spotlight-V100
 .Trashes
 Icon?
+# Allow extension icons (Icon? pattern above would match the icons/ dir on macOS)
+!extension/icons/
+!extension/icons/*.png
 
 # ---- IDE / Editor ----
 .vscode/

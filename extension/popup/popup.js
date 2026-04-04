@@ -7,6 +7,7 @@
 'use strict';
 
 const API_BASE = 'http://localhost:8000';
+// TODO: change to https://api.verifai.app for production
 
 // ---------------------------------------------------------------------------
 // Helpers
