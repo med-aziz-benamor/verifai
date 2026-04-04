@@ -3,9 +3,13 @@
 # Description: HuggingFace (RoBERTa detector) + Claude API chaining for AI text
 #              detection (Axis 1) and contextual consistency analysis (Axis 2).
 
+from dotenv import load_dotenv
+load_dotenv()  # ensure .env is loaded even if this module is imported before main.py
+
 import os
 import json
 import asyncio
+import traceback
 import httpx
 from typing import Optional
 
@@ -74,23 +78,31 @@ async def analyze_text(text: str, page_url: Optional[str] = None) -> dict:
         }
 
     signals: list[str] = []
-    hf_score  = 50   # fallback if HuggingFace fails
+    hf_score  = 50
     hf_ok     = False
 
-    claude_ai_confidence      = 50   # fallback if Claude fails
+    claude_ai_confidence      = 50
     claude_context_confidence = 50
     claude_explanation        = "Analysis could not be completed."
     claude_ok                 = False
 
     # ── Step 1: HuggingFace RoBERTa detector ─────────────────────────────────
+    print(f"[DEBUG] HF API KEY present: {bool(HUGGINGFACE_API_KEY)}")
+    print(f"[DEBUG] HF API KEY starts with: {HUGGINGFACE_API_KEY[:8] if HUGGINGFACE_API_KEY else 'NONE'}")
+
     try:
         hf_score = await call_hf_detector(text)
         hf_ok    = True
+        print(f"[DEBUG] HF score: {hf_score}")
     except Exception as exc:
-        print(f"[Verifai] HuggingFace error: {exc}")
+        print(f"[Verifai] HF error: {type(exc).__name__}: {exc}")
+        traceback.print_exc()
         signals.append("HuggingFace unavailable — Claude only")
 
     # ── Step 2: Claude ────────────────────────────────────────────────────────
+    print(f"[DEBUG] Anthropic KEY present: {bool(ANTHROPIC_API_KEY)}")
+    print(f"[DEBUG] Anthropic KEY starts with: {ANTHROPIC_API_KEY[:8] if ANTHROPIC_API_KEY else 'NONE'}")
+
     system_prompt = (
         "You are a misinformation detection expert. Analyze the given text "
         "and return ONLY a JSON object — no markdown, no explanation, "
@@ -131,7 +143,7 @@ Signal examples (use similar specific phrasing):
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-4-6",
                     "max_tokens": 512,
                     "system": system_prompt,
                     "messages": [{"role": "user", "content": user_prompt}],
@@ -139,6 +151,7 @@ Signal examples (use similar specific phrasing):
             )
             resp.raise_for_status()
             raw_text = resp.json()["content"][0]["text"].strip()
+            print(f"[DEBUG] Claude raw response: {raw_text[:200]}")
 
         # Strip accidental markdown fences if Claude wraps output
         if raw_text.startswith("```"):
@@ -153,12 +166,15 @@ Signal examples (use similar specific phrasing):
         claude_signals            = parsed.get("signals", [])
         signals.extend(claude_signals)
         claude_ok = True
+        print(f"[DEBUG] Claude ai_confidence={claude_ai_confidence}, context_confidence={claude_context_confidence}")
 
     except json.JSONDecodeError as exc:
-        print(f"[Verifai] Claude JSON parse error: {exc}")
+        print(f"[Verifai] Claude JSON parse error: {type(exc).__name__}: {exc}")
+        traceback.print_exc()
         signals.append("Claude unavailable — HuggingFace only")
     except Exception as exc:
-        print(f"[Verifai] Claude error: {exc}")
+        print(f"[Verifai] Claude error: {type(exc).__name__}: {exc}")
+        traceback.print_exc()
         signals.append("Claude unavailable — HuggingFace only")
 
     # ── Both failed ───────────────────────────────────────────────────────────
@@ -203,6 +219,8 @@ Signal examples (use similar specific phrasing):
             deduped.append(s)
         if len(deduped) == 5:
             break
+
+    print(f"[DEBUG] Final verdict={verdict}, score={round(final_score)}, hf_ok={hf_ok}, claude_ok={claude_ok}")
 
     return {
         "verdict": verdict,

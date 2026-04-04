@@ -4,15 +4,17 @@
 #              and exposes a health check endpoint.
 # Run: uvicorn main:app --reload
 
+# load_dotenv() MUST come before any other local imports so that os.getenv()
+# calls in service modules read the correct values at import time.
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
 from routes.analyze import router as analyze_router
 from routes.url_check import router as url_check_router
-
-load_dotenv()
 
 app = FastAPI(
     title="Verifai API",
