@@ -11,10 +11,10 @@ import json
 import asyncio
 import traceback
 import httpx
+import anthropic
 from typing import Optional
 
-ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
-HF_MODEL_URL      = "https://api-inference.huggingface.co/models/openai-community/roberta-base-openai-detector"
+HF_MODEL_URL = "https://router.huggingface.co/hf-inference/models/openai-community/roberta-base-openai-detector"
 
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "")
 ANTHROPIC_API_KEY   = os.getenv("ANTHROPIC_API_KEY", "")
@@ -47,16 +47,22 @@ async def call_hf_detector(text: str) -> float:
                 json={"inputs": truncated},
             )
 
-        data = response.json()
+        print(f"[DEBUG] HF raw response status: {response.status_code}")
+        print(f"[DEBUG] HF raw response body: {response.text[:300]}")
 
-        # Response shape: [[{"label": "LABEL_0", "score": 0.12},
-        #                    {"label": "LABEL_1", "score": 0.88}]]
-        if isinstance(data, list) and len(data) > 0:
-            scores = data[0] if isinstance(data[0], list) else data
-            for item in scores:
-                if item.get("label") == "LABEL_1":
+        data = response.json()
+        print(f"[DEBUG] HF parsed data: {data}")
+
+        # Handle both possible label shapes from this model:
+        #   [[{"label": "Real", "score": 0.53}, {"label": "Fake", "score": 0.47}]]
+        #   [[{"label": "LABEL_0", ...}, {"label": "LABEL_1", ...}]]
+        if isinstance(data, list):
+            inner = data[0] if isinstance(data[0], list) else data
+            for item in inner:
+                if isinstance(item, dict) and item.get("label") in ("LABEL_1", "Fake"):
                     return round(item["score"] * 100)
 
+    print(f"[DEBUG] HF unexpected shape, returning 50")
     return 50  # fallback if unexpected response shape
 
 
@@ -103,13 +109,7 @@ async def analyze_text(text: str, page_url: Optional[str] = None) -> dict:
     print(f"[DEBUG] Anthropic KEY present: {bool(ANTHROPIC_API_KEY)}")
     print(f"[DEBUG] Anthropic KEY starts with: {ANTHROPIC_API_KEY[:8] if ANTHROPIC_API_KEY else 'NONE'}")
 
-    system_prompt = (
-        "You are a misinformation detection expert. Analyze the given text "
-        "and return ONLY a JSON object — no markdown, no explanation, "
-        "no extra text before or after the JSON."
-    )
-
-    user_prompt = f"""Analyze this text for AI generation and contextual consistency.
+    user_content = f"""Analyze this text for AI generation and contextual consistency.
 
 TEXT:
 {text}
@@ -125,33 +125,34 @@ Return ONLY this JSON structure, no other text:
   "explanation": "<2 sentences max, plain language for non-technical users>"
 }}
 
-Signal examples (use similar specific phrasing):
+Signal examples:
 - "Unusually uniform sentence length"
 - "Repetitive transitional phrases typical of LLMs"
 - "Claim inconsistent with page topic"
-- "Overly formal tone for this context"
 - "Low perplexity — highly predictable word choices"
 """
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                ANTHROPIC_API_URL,
-                headers={
-                    "x-api-key": ANTHROPIC_API_KEY,
-                    "anthropic-version": "2023-06-01",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": "claude-sonnet-4-6",
-                    "max_tokens": 512,
-                    "system": system_prompt,
-                    "messages": [{"role": "user", "content": user_prompt}],
-                },
-            )
-            resp.raise_for_status()
-            raw_text = resp.json()["content"][0]["text"].strip()
-            print(f"[DEBUG] Claude raw response: {raw_text[:200]}")
+        claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+        # The SDK is synchronous — run it in a thread so we don't block the event loop
+        loop    = asyncio.get_event_loop()
+        message = await loop.run_in_executor(
+            None,
+            lambda: claude_client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=512,
+                system=(
+                    "You are a misinformation detection expert. Analyze the given text "
+                    "and return ONLY a JSON object — no markdown, no explanation, "
+                    "no extra text before or after the JSON."
+                ),
+                messages=[{"role": "user", "content": user_content}],
+            ),
+        )
+
+        raw_text = message.content[0].text.strip()
+        print(f"[DEBUG] Claude raw response: {raw_text[:200]}")
 
         # Strip accidental markdown fences if Claude wraps output
         if raw_text.startswith("```"):
