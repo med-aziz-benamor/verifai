@@ -1,0 +1,172 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 220 30% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 15%;
+
+    --primary: 215 70% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 40% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 15% 93%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 25 95% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 215 70% 38%;
+
+    --radius: 0.75rem;
+
+    --verified: 152 60% 42%;
+    --verified-foreground: 0 0% 100%;
+    --suspicious: 38 92% 50%;
+    --suspicious-foreground: 0 0% 100%;
+    --manipulated: 0 72% 51%;
+    --manipulated-foreground: 0 0% 100%;
+
+    --surface: 0 0% 100%;
+    --surface-elevated: 220 20% 98%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 220 25% 10%;
+    --foreground: 220 15% 90%;
+
+    --card: 220 25% 14%;
+    --card-foreground: 220 15% 90%;
+
+    --popover: 220 25% 14%;
+    --popover-foreground: 220 15% 90%;
+
+    --primary: 215 65% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 35% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 20% 18%;
+    --muted-foreground: 220 10% 60%;
+
+    --accent: 25 90% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 20%;
+    --input: 220 20% 20%;
+    --ring: 215 65% 55%;
+
+    --verified: 152 55% 45%;
+    --verified-foreground: 0 0% 100%;
+    --suspicious: 38 85% 50%;
+    --suspicious-foreground: 0 0% 100%;
+    --manipulated: 0 65% 50%;
+    --manipulated-foreground: 0 0% 100%;
+
+    --surface: 220 25% 14%;
+    --surface-elevated: 220 25% 17%;
+
+    --sidebar-background: 220 25% 12%;
+    --sidebar-foreground: 220 15% 85%;
+    --sidebar-primary: 215 65% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 18%;
+    --sidebar-accent-foreground: 220 15% 85%;
+    --sidebar-border: 220 20% 20%;
+    --sidebar-ring: 215 65% 55%;
+  }
+}
+
+/* View Transition wave animation */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+  animation: wave-reveal 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes wave-reveal {
+  from {
+    clip-path: circle(0px at var(--wave-x, 50%) var(--wave-y, 50%));
+  }
+  to {
+    clip-path: circle(var(--wave-r, 150vmax) at var(--wave-x, 50%) var(--wave-y, 50%));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(215 70% 38% / 0.05) 0%, hsl(25 95% 55% / 0.05) 100%);
+  }
+
+  .dark .gradient-hero {
+    background: linear-gradient(135deg, hsl(215 65% 55% / 0.08) 0%, hsl(25 90% 55% / 0.06) 100%);
+  }
+
+  .shadow-soft {
+    box-shadow: 0 2px 8px -2px hsl(220 30% 15% / 0.06), 0 4px 16px -4px hsl(220 30% 15% / 0.08);
+  }
+
+  .shadow-card {
+    box-shadow: 0 1px 3px hsl(220 30% 15% / 0.04), 0 4px 12px -2px hsl(220 30% 15% / 0.06);
+  }
+
+  .dark .shadow-soft {
+    box-shadow: 0 2px 8px -2px hsl(0 0% 0% / 0.3), 0 4px 16px -4px hsl(0 0% 0% / 0.4);
+  }
+
+  .dark .shadow-card {
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.2), 0 4px 12px -2px hsl(0 0% 0% / 0.3);
+  }
+}
