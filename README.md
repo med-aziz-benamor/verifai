@@ -215,13 +215,52 @@ Generate icons first (required once):
 python generate_icons.py
 ```
 
-**Chrome:**
-1. `chrome://extensions` → enable **Developer mode**
-2. **Load unpacked** → select the `extension/` folder
+---
 
-**Firefox:**
-1. `about:debugging#/runtime/this-firefox`
-2. **Load Temporary Add-on** → select `extension/manifest.json`
+#### Google Chrome / Chromium / Brave / Edge
+
+1. Open **`chrome://extensions`** in your browser  
+   *(For Edge: `edge://extensions` — For Brave: `brave://extensions`)*
+2. Toggle **Developer mode** on (top-right corner)
+3. Click **Load unpacked**
+4. Navigate to and select the **`extension/`** folder in this repo
+5. The **Verifai Lens** icon will appear in your toolbar
+
+> To pin it: click the puzzle-piece icon in the toolbar → find Verifai Lens → click the pin icon
+
+To update after code changes:
+- Go back to `chrome://extensions`
+- Find Verifai Lens and click the **↺ refresh** icon
+
+---
+
+#### Mozilla Firefox
+
+Firefox only allows temporarily loaded extensions unless the extension is signed by Mozilla. For development, use the temporary add-on loader:
+
+1. Open **`about:debugging#/runtime/this-firefox`**
+2. Click **Load Temporary Add-on…**
+3. Navigate into the **`extension/`** folder and select **`manifest.json`**
+4. The extension will appear in the toolbar
+
+> **Note:** Temporarily loaded extensions are removed when Firefox restarts. Repeat these steps each session during development.
+
+To keep it persistent across restarts (advanced):
+- Install [Firefox Developer Edition](https://www.mozilla.org/firefox/developer/) or Firefox Nightly
+- Open **`about:config`** → search for `xpinstall.signatures.required` → set it to `false`
+- Then go to **`about:addons`** → click the gear icon → **Install Add-on From File…** → select the `extension/` folder
+
+---
+
+#### Verifying the extension is working
+
+Once loaded in either browser:
+
+1. Make sure the **backend is running** at `http://localhost:8000`
+2. Navigate to any webpage — the extension will automatically check the URL
+3. Select any text on the page (20+ characters) — a floating **"Verify with Verifai"** button should appear
+4. On **facebook.com** — scroll the feed and look for the **"Verify Comment"** button on posts
+5. Click the extension icon in the toolbar to open the **3-tab popup**
 
 ---
 
