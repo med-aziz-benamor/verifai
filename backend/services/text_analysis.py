@@ -1,6 +1,6 @@
 # Owner: AI/ML Lead — Text Analysis
 # File: backend/services/text_analysis.py
-# Description: HuggingFace (RoBERTa detector) + Claude API chaining for AI text
+# Description: HuggingFace (RoBERTa detector) + Google Gemini chaining for AI text
 #              detection (Axis 1) and contextual consistency analysis (Axis 2).
 
 from dotenv import load_dotenv
@@ -11,13 +11,13 @@ import json
 import asyncio
 import traceback
 import httpx
-import anthropic
+from google import genai as google_genai
 from typing import Optional
 
 HF_MODEL_URL = "https://router.huggingface.co/hf-inference/models/openai-community/roberta-base-openai-detector"
 
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "")
-ANTHROPIC_API_KEY   = os.getenv("ANTHROPIC_API_KEY", "")
+GEMINI_API_KEY      = os.getenv("GEMINI_API_KEY", "")
 
 
 async def call_hf_detector(text: str) -> float:
@@ -68,7 +68,7 @@ async def call_hf_detector(text: str) -> float:
 
 async def analyze_text(text: str, page_url: Optional[str] = None) -> dict:
     """
-    Analyze text for AI generation (HuggingFace) and contextual consistency (Claude).
+    Analyze text for AI generation (HuggingFace) and contextual consistency (Gemini).
     Returns a unified verdict dict.
     """
 
@@ -103,26 +103,26 @@ async def analyze_text(text: str, page_url: Optional[str] = None) -> dict:
     except Exception as exc:
         print(f"[Verifai] HF error: {type(exc).__name__}: {exc}")
         traceback.print_exc()
-        signals.append("HuggingFace unavailable — Claude only")
+        signals.append("HuggingFace unavailable — Gemini only")
 
-    # ── Step 2: Claude ────────────────────────────────────────────────────────
-    print(f"[DEBUG] Anthropic KEY present: {bool(ANTHROPIC_API_KEY)}")
-    print(f"[DEBUG] Anthropic KEY starts with: {ANTHROPIC_API_KEY[:8] if ANTHROPIC_API_KEY else 'NONE'}")
+    # ── Step 2: Gemini ────────────────────────────────────────────────────────
+    print(f"[DEBUG] Gemini KEY present: {bool(GEMINI_API_KEY)}")
+    print(f"[DEBUG] Gemini KEY starts with: {GEMINI_API_KEY[:8] if GEMINI_API_KEY else 'NONE'}")
 
-    user_content = f"""Analyze this text for AI generation and contextual consistency.
+    prompt = f"""Analyze this text for AI generation and contextual consistency.
 
 TEXT:
 {text}
 
 PAGE URL (context, may be null): {page_url or 'unknown'}
 
-Return ONLY this JSON structure, no other text:
+Return ONLY this JSON structure, no markdown, no extra text:
 {{
   "ai_confidence": <integer 0-100>,
   "context_consistent": <true or false>,
   "context_confidence": <integer 0-100>,
   "signals": [<list of 2-4 specific short signal strings>],
-  "explanation": "<2 sentences max, plain language for non-technical users>"
+  "explanation": "<2 sentences max, plain language>"
 }}
 
 Signal examples:
@@ -133,50 +133,39 @@ Signal examples:
 """
 
     try:
-        claude_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-        # The SDK is synchronous — run it in a thread so we don't block the event loop
-        loop    = asyncio.get_event_loop()
-        message = await loop.run_in_executor(
-            None,
-            lambda: claude_client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=512,
-                system=(
-                    "You are a misinformation detection expert. Analyze the given text "
-                    "and return ONLY a JSON object — no markdown, no explanation, "
-                    "no extra text before or after the JSON."
-                ),
-                messages=[{"role": "user", "content": user_content}],
-            ),
+        client   = google_genai.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
         )
+        raw = response.text.strip()
 
-        raw_text = message.content[0].text.strip()
-        print(f"[DEBUG] Claude raw response: {raw_text[:200]}")
+        print(f"[DEBUG] Gemini raw response: {raw[:200]}")
 
-        # Strip accidental markdown fences if Claude wraps output
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("```")[1]
-            if raw_text.startswith("json"):
-                raw_text = raw_text[4:]
+        # Strip markdown fences if present
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        raw = raw.strip()
 
-        parsed = json.loads(raw_text)
-        claude_ai_confidence      = int(parsed.get("ai_confidence", 50))
-        claude_context_confidence = int(parsed.get("context_confidence", 50))
-        claude_explanation        = parsed.get("explanation", "")
-        claude_signals            = parsed.get("signals", [])
+        claude_data               = json.loads(raw)
+        claude_ai_confidence      = int(claude_data.get("ai_confidence", 50))
+        claude_context_confidence = int(claude_data.get("context_confidence", 50))
+        claude_signals            = claude_data.get("signals", [])
+        claude_explanation        = claude_data.get("explanation", "")
         signals.extend(claude_signals)
         claude_ok = True
-        print(f"[DEBUG] Claude ai_confidence={claude_ai_confidence}, context_confidence={claude_context_confidence}")
+        print(f"[DEBUG] Gemini ai_confidence={claude_ai_confidence}, context_confidence={claude_context_confidence}")
 
     except json.JSONDecodeError as exc:
-        print(f"[Verifai] Claude JSON parse error: {type(exc).__name__}: {exc}")
+        print(f"[Verifai] Gemini JSON parse error: {type(exc).__name__}: {exc}")
         traceback.print_exc()
-        signals.append("Claude unavailable — HuggingFace only")
+        signals.append("Gemini unavailable — HuggingFace only")
     except Exception as exc:
-        print(f"[Verifai] Claude error: {type(exc).__name__}: {exc}")
+        print(f"[Verifai] Gemini error: {type(exc).__name__}: {exc}")
         traceback.print_exc()
-        signals.append("Claude unavailable — HuggingFace only")
+        signals.append("Gemini unavailable — HuggingFace only")
 
     # ── Both failed ───────────────────────────────────────────────────────────
     if not hf_ok and not claude_ok:
@@ -221,7 +210,7 @@ Signal examples:
         if len(deduped) == 5:
             break
 
-    print(f"[DEBUG] Final verdict={verdict}, score={round(final_score)}, hf_ok={hf_ok}, claude_ok={claude_ok}")
+    print(f"[DEBUG] Final verdict={verdict}, score={round(final_score)}, hf_ok={hf_ok}, gemini_ok={claude_ok}")
 
     return {
         "verdict": verdict,
