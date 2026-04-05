@@ -277,3 +277,6 @@ The Chrome extension adds verification capabilities directly to the browser:
 ## Team
 
 Built for the **MenaCraft Hackathon 2026**.
+
+
+access the latest version in this drive : https://drive.google.com/drive/folders/1xYFLZRRhBBAGliAGjmmwePTJKDcCnWRx?usp=sharing
