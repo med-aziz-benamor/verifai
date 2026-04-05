@@ -1,12 +1,8 @@
 <!DOCTYPE html>
-<!-- Owner: Extension Lead -->
-<!-- File: extension/popup/popup.html -->
-<!-- Description: Extension popup UI. Shows the URL verdict for the current tab
-     and lets the user paste text or URLs for manual analysis. -->
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Verifai Lens</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -14,299 +10,378 @@
     body {
       width: 360px;
       min-height: 480px;
-      background: #0a0e1a;
-      color: #e2e8f0;
-      font-family: Inter, system-ui, sans-serif;
-      font-size: 13px;
-      -webkit-font-smoothing: antialiased;
+      background: #F5F5F5;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
     }
 
-    /* ── Header ── */
+    .card {
+      background: white;
+      border-radius: 16px;
+      margin: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    /* HEADER */
     .header {
       display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 16px;
-      background: linear-gradient(135deg, #0d1424, #111c30);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
     }
-    .logo-mark {
+    .header-left {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: #3b7af5;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(59,122,245,0.4);
-      font-size: 16px;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .header-logo {
+      width: 28px;
+      height: 28px;
     }
     .header-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #fff;
+      font-size: 12px;
+      color: #6B7280;
+      font-weight: 500;
     }
-    .header-sub {
-      font-size: 11px;
-      color: #64748b;
+    .header-tagline {
+      font-size: 12px;
+      color: #6B7280;
+      font-style: italic;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #E5E7EB;
+      margin: 12px 0;
     }
 
-    /* ── Tabs ── */
+    /* TABS */
     .tabs {
       display: flex;
-      background: rgba(255,255,255,0.04);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: #F3F4F6;
+      border-radius: 999px;
+      padding: 4px;
+      margin-bottom: 16px;
+      gap: 2px;
     }
     .tab-btn {
       flex: 1;
-      padding: 10px 6px;
-      background: none;
+      padding: 6px 4px;
       border: none;
-      color: #64748b;
-      font-family: inherit;
-      font-size: 12px;
+      background: transparent;
+      border-radius: 999px;
+      font-size: 11px;
       font-weight: 600;
+      color: #6B7280;
       cursor: pointer;
-      transition: color 0.15s;
-      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
     }
     .tab-btn.active {
-      color: #3b7af5;
-      border-bottom-color: #3b7af5;
+      background: white;
+      color: #111827;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    .tab-btn:hover:not(.active) { color: #94a3b8; }
 
-    /* ── Tab panels ── */
-    .tab-panel { display: none; padding: 16px; }
-    .tab-panel.active { display: block; }
-
-    /* ── Current page card ── */
-    .page-url {
+    /* SELECTED CONTENT */
+    .selected-content {
+      background: #F9FAFB;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+    .selected-label {
       font-size: 10px;
-      color: #64748b;
-      margin-bottom: 12px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .verdict-card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
-    }
-    .verdict-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-    .verdict-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    .verdict-value { font-size: 13px; font-weight: 700; text-transform: capitalize; }
-
-    .badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 10px;
-      font-weight: 600;
+      color: #9CA3AF;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .badge-suspicious { background: rgba(251,191,36,0.2); color: #fbbf24; }
-    .badge-high       { background: rgba(248,113,113,0.2); color: #f87171; }
-    .badge-low        { background: rgba(52,211,153,0.2);  color: #34d399; }
-    .badge-medium     { background: rgba(251,191,36,0.15); color: #fbbf24; }
-    .badge-ai         { background: rgba(167,139,250,0.2); color: #a78bfa; }
-
-    .signals-list {
-      list-style: none;
-      margin-top: 8px;
-    }
-    .signals-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 6px;
-      font-size: 11px;
-      color: #94a3b8;
-      padding: 3px 0;
-    }
-    .signals-list li span { color: #fbbf24; flex-shrink: 0; }
-
-    .score-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #64748b;
+      letter-spacing: 0.5px;
       margin-bottom: 4px;
     }
-    .score-bar-wrap {
-      height: 4px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 2px;
-      margin-bottom: 8px;
-      overflow: hidden;
-    }
-    .score-bar-fill {
-      height: 100%;
-      border-radius: 2px;
-      background: linear-gradient(90deg, #3b7af5, #60a5fa);
-      transition: width 0.5s ease;
+    .selected-text {
+      font-size: 14px;
+      color: #111827;
+      font-weight: 500;
+      line-height: 1.4;
     }
 
-    /* ── Manual check form ── */
-    .form-label {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    /* VERDICT ROW */
+    .verdict-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .verdict-badge {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .verdict-badge.authentic {
+      background: #DCFCE7;
+      color: #15803D;
+    }
+    .verdict-badge.suspicious {
+      background: #FEF3C7;
+      color: #B45309;
+    }
+    .verdict-badge.ai_generated {
+      background: #FEE2E2;
+      color: #B91C1C;
+    }
+    .verdict-badge.likely_authentic {
+      background: #DCFCE7;
+      color: #15803D;
+    }
+    .confidence-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    /* SCORE BARS */
+    .score-row {
+      margin-bottom: 12px;
+    }
+    .score-header {
+      display: flex;
+      justify-content: space-between;
       margin-bottom: 6px;
     }
-    .input-field {
-      width: 100%;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      color: #e2e8f0;
-      font-family: inherit;
-      font-size: 12px;
-      padding: 9px 12px;
-      outline: none;
-      transition: border-color 0.15s;
+    .score-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
     }
-    .input-field:focus { border-color: rgba(59,122,245,0.5); }
-    .input-field::placeholder { color: #475569; }
-    textarea.input-field { resize: vertical; min-height: 80px; }
+    .score-pct {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .score-track {
+      height: 8px;
+      background: #E5E7EB;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s ease;
+    }
 
+    /* EXPLANATION */
+    .explanation {
+      font-size: 13px;
+      color: #6B7280;
+      font-style: italic;
+      line-height: 1.5;
+      margin: 12px 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* SIGNAL CHIPS */
+    .signals {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .signal-chip {
+      background: #F3F4F6;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: #6B7280;
+    }
+
+    /* BUTTONS */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
     .btn {
-      display: inline-flex;
+      flex: 1;
+      padding: 12px 0;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      width: 100%;
-      padding: 9px;
-      margin-top: 10px;
-      background: #3b7af5;
-      color: #fff;
-      font-family: inherit;
-      font-size: 12px;
-      font-weight: 700;
       border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(59,122,245,0.3);
-      transition: transform 0.15s, box-shadow 0.15s;
     }
-    .btn:hover    { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(59,122,245,0.4); }
-    .btn:active   { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .divider { margin: 14px 0; border: none; border-top: 1px solid rgba(255,255,255,0.07); }
+    .btn-primary {
+      background: #1E3A5F;
+      color: white;
+    }
+    .btn-secondary {
+      background: white;
+      color: #374151;
+      border: 1.5px solid #E5E7EB;
+    }
 
-    .result-box {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+    /* FORM ELEMENTS */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #E5E7EB;
       border-radius: 10px;
-      padding: 12px;
-      margin-top: 10px;
-      display: none;
+      font-size: 13px;
+      color: #111827;
+      background: #F9FAFB;
+      resize: none;
+      font-family: inherit;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    textarea:focus, input:focus {
+      border-color: #3B82F6;
+      background: white;
     }
 
+    /* LOADING */
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #6B7280;
+      font-size: 13px;
+    }
     .spinner {
-      width: 14px;
-      height: 14px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #E5E7EB;
+      border-top-color: #3B82F6;
       border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 8px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .error-msg { color: #f87171; font-size: 11px; margin-top: 6px; }
-
-    /* ── Footer ── */
-    .footer {
-      padding: 10px 16px;
-      text-align: center;
-      font-size: 10px;
-      color: #334155;
-      border-top: 1px solid rgba(255,255,255,0.05);
+    /* URL CHECK TAB */
+    .url-result-box {
+      background: #F9FAFB;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <div class="header">
-    <div class="logo-mark">🛡️</div>
-    <div>
-      <div class="header-title">Verifai Lens</div>
-      <div class="header-sub">AI Content Verification</div>
+  <div class="card">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-left">
+        <img src="../icons/logo.png" class="header-logo" alt="Verifai"/>
+        <span class="header-title">Verifai Lens</span>
+      </div>
+      <span class="header-tagline">See through the noise</span>
     </div>
-  </div>
+    <hr class="divider"/>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="current-page">Current Page</button>
-    <button class="tab-btn" data-tab="check-text">Check Text</button>
-    <button class="tab-btn" data-tab="check-url">Check URL</button>
-  </div>
-
-  <!-- ── Tab: Current Page ── -->
-  <div id="tab-current-page" class="tab-panel active">
-    <div class="page-url" id="current-url">Loading…</div>
-
-    <div class="verdict-card" id="url-verdict-card">
-      <div class="verdict-row">
-        <span class="verdict-label">Verdict</span>
-        <span class="verdict-value" id="url-verdict-value">—</span>
-      </div>
-      <div class="verdict-row">
-        <span class="verdict-label">Risk Level</span>
-        <span id="url-risk-badge" class="badge">—</span>
-      </div>
-      <div class="verdict-row">
-        <span class="verdict-label">Confidence</span>
-        <span id="url-confidence">—%</span>
-      </div>
-      <ul class="signals-list" id="url-signals"></ul>
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="current-page">Current Page</button>
+      <button class="tab-btn" data-tab="check-text">Check Text</button>
+      <button class="tab-btn" data-tab="check-url">Check URL</button>
     </div>
 
-    <button class="btn" id="recheck-btn">🔄 Re-check This Page</button>
-  </div>
+    <!-- TAB: CURRENT PAGE -->
+    <div id="tab-current-page" class="tab-panel active">
+      <div class="selected-content">
+        <div class="selected-label">Selected content</div>
+        <div class="selected-text" id="selected-text-preview">
+          Analyzing current page...
+        </div>
+      </div>
 
-  <!-- ── Tab: Check Text ── -->
-  <div id="tab-check-text" class="tab-panel">
-    <label class="form-label" for="text-input">Paste text to analyse</label>
-    <textarea
-      id="text-input"
-      class="input-field"
-      placeholder="Paste any article, caption, or excerpt…"
-    ></textarea>
-    <button class="btn" id="analyze-text-btn">Analyse Text</button>
-    <p class="error-msg" id="text-error" style="display:none"></p>
-    <div class="result-box" id="text-result"></div>
-  </div>
+      <div class="verdict-row">
+        <span class="verdict-badge suspicious" id="verdict-badge">● SUSPICIOUS</span>
+        <span class="confidence-value" id="confidence-value">72%</span>
+      </div>
 
-  <!-- ── Tab: Check URL ── -->
-  <div id="tab-check-url" class="tab-panel">
-    <label class="form-label" for="url-input">Enter a URL to verify</label>
-    <input
-      type="url"
-      id="url-input"
-      class="input-field"
-      placeholder="https://suspicious-site.com"
-    />
-    <button class="btn" id="check-url-btn">Check URL</button>
-    <p class="error-msg" id="url-error" style="display:none"></p>
-    <div class="result-box" id="url-result"></div>
-  </div>
+      <div class="score-row">
+        <div class="score-header">
+          <span class="score-label">AI Generated</span>
+          <span class="score-pct" id="ai-score-value" style="color:#F59E0B">68%</span>
+        </div>
+        <div class="score-track">
+          <div class="score-fill" id="ai-score-bar"
+               style="width:68%; background:#F59E0B"></div>
+        </div>
+      </div>
 
-  <!-- Footer -->
-  <div class="footer">Verifai Lens · MenaCraft Hackathon 2026</div>
+      <div class="score-row">
+        <div class="score-header">
+          <span class="score-label">Context Match</span>
+          <span class="score-pct" id="context-score-value" style="color:#22C55E">85%</span>
+        </div>
+        <div class="score-track">
+          <div class="score-fill" id="context-score-bar"
+               style="width:85%; background:#22C55E"></div>
+        </div>
+      </div>
+
+      <p class="explanation" id="explanation-text">
+        This claim contains language patterns consistent with AI-generated text.
+        Source credibility is moderate. We recommend cross-checking.
+      </p>
+
+      <div class="signals" id="signals-chips">
+        <span class="signal-chip">Repetitive phrasing</span>
+        <span class="signal-chip">Uniform sentence length</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="full-report-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Full Report
+        </button>
+        <button class="btn btn-secondary" id="dashboard-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          Dashboard
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB: CHECK TEXT -->
+    <div id="tab-check-text" class="tab-panel">
+      <textarea id="text-input" rows="5"
+        placeholder="Paste any text here to check if it's AI-generated..."></textarea>
+      <button class="btn btn-primary" id="analyze-text-btn" style="width:100%">
+        Analyse Text
+      </button>
+      <div id="text-result" style="margin-top:12px"></div>
+    </div>
+
+    <!-- TAB: CHECK URL -->
+    <div id="tab-check-url" class="tab-panel">
+      <input type="text" id="url-input" placeholder="https://example.com"/>
+      <button class="btn btn-primary" id="check-url-btn" style="width:100%">
+        Check URL
+      </button>
+      <div id="url-result" style="margin-top:12px"></div>
+    </div>
+
+  </div><!-- end .card -->
 
   <script src="popup.js"></script>
 </body>

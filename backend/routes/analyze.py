@@ -4,14 +4,38 @@
 #              text, routes to the appropriate service, and returns a structured
 #              verdict JSON.
 
+import base64
+
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from typing import Optional
 
 from services.text_analysis  import analyze_text
 from services.image_analysis import analyze_image
 
 router = APIRouter()
+
+
+class ImageBase64Request(BaseModel):
+    image_base64: str
+    filename: str = "image.jpg"
+
+
+@router.post("/analyze-image-base64")
+async def analyze_image_base64(payload: ImageBase64Request):
+    """
+    Analyze an image supplied as a base64-encoded string.
+    Used by the Facebook content script which cannot send multipart form data
+    cross-origin but can POST JSON.
+    """
+    try:
+        image_data = base64.b64decode(payload.image_base64)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid base64 data: {exc}")
+
+    result = await analyze_image(image_data, payload.filename)
+    return JSONResponse(content=result)
 
 
 @router.post("/analyze")

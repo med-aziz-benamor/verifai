@@ -75,14 +75,14 @@ async def analyze_text(text: str, page_url: Optional[str] = None) -> dict:
     """
 
     # ── Guard: too short ─────────────────────────────────────────────────────
-    if len(text.strip()) < 80:
+    if len(text.strip()) < 20:
         return {
             "verdict": "inconclusive",
             "confidence": 0,
             "content_type": "text",
             "scores": {"ai_generated": 0, "context_match": 0},
             "signals": ["Text too short for reliable analysis"],
-            "explanation": "We need at least 80 characters to perform a reliable analysis.",
+            "explanation": "Text too short for reliable analysis (minimum 20 characters)",
         }
 
     signals: list[str] = []
